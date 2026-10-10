@@ -3,15 +3,15 @@
 import os
 import json
 from Params import p_args
-from mig_gt.configs.default_config import add_arguments_by_config_class, combine_args_into_config
-from mig_gt.configs.mm_mgdcf_default_config import MMMGDCFConfig
-from mig_gt.configs.masked_mm_mgdcf_default_config import load_masked_mm_mgdcf_default_config
+from one_game.configs.default_config import add_arguments_by_config_class, combine_args_into_config
+from one_game.configs.mm_mgdcf_default_config import MMMGDCFConfig
+from one_game.configs.masked_mm_mgdcf_default_config import load_masked_mm_mgdcf_default_config
 import sys
 import time
 import torch.nn.functional as F
 
-from mig_gt.layers.mirf_gt import MIGGT
-from mig_gt.vector_search.vector_search import VectorSearchEngine
+from one_game.layers.game_model import ONEGAME
+from one_game.vector_search.vector_search import VectorSearchEngine
 
 config = load_masked_mm_mgdcf_default_config(p_args.dataset)
 config = combine_args_into_config(config, p_args)
@@ -20,18 +20,18 @@ print(config)
 
 os.environ["CUDA_VISIBLE_DEVICES"] = p_args.gpu
 
-from mig_gt.utils.random_utils import reset_seed
+from one_game.utils.random_utils import reset_seed
 
 reset_seed(p_args.seed)
 
-from mig_gt.layers.mm_mgdcf import MMMGDCF
+from one_game.layers.MultimodalEncoder import MMMGDCF
 import shortuuid
-from mig_gt.layers.sign import random_project, sign_pre_compute
-from mig_gt.losses import compute_info_bpr_loss, compute_l2_loss
-from mig_gt.utils.data_loader_utils import create_tensors_dataloader
-from mig_gt.evaluation.ranking import evaluate_mean_global_metrics
-from mig_gt.layers.mgdcf import MGDCF
-from mig_gt.load_data import load_data
+from one_game.layers.sign import random_project, sign_pre_compute
+from one_game.losses import compute_info_bpr_loss, compute_l2_loss
+from one_game.utils.data_loader_utils import create_tensors_dataloader
+from one_game.evaluation.ranking import evaluate_mean_global_metrics
+from one_game.layers.GNNBackbone import MGDCF
+from one_game.load_data import load_data
 import torch
 import numpy as np
 import dgl
@@ -81,7 +81,7 @@ item_embeddings = torch.tensor(item_embeddings, dtype=torch.float32, requires_gr
 
 method = p_args.method
 
-if method == "mig":
+if method == "one_game_base1":
     model = MMMGDCF(
         k_e=config.k_e, k_t=config.k_t, k_v=config.k_v,
         alpha=config.alpha, beta=config.beta,
@@ -98,8 +98,8 @@ if method == "mig":
         bn=config.bn,
     ).to(device)
 
-elif method == "mig_gt":
-    model = MIGGT(
+elif method == "one_game_base2":
+    model = ONEGAME(
         k_e=config.k_e, k_t=config.k_t, k_v=config.k_v,
         alpha=config.alpha, beta=config.beta,
         input_feat_drop_rate=config.input_feat_drop_rate,
@@ -121,8 +121,8 @@ elif method == "mig_gt":
         use_gen=False,
     ).to(device)
 
-elif method == "mig_gt_gen":
-    model = MIGGT(
+elif method == "one_game":
+    model = ONEGAME(
         k_e=config.k_e, k_t=config.k_t, k_v=config.k_v,
         alpha=config.alpha, beta=config.beta,
         input_feat_drop_rate=config.input_feat_drop_rate,
@@ -152,7 +152,7 @@ use_mm_mf_loss = False
 
 def forward(g, batch_edges=None, batch_indices=None, return_all=False):
     if return_all:
-        if method == "mig_gt_gen":
+        if method == "one_game":
             outputs = model(g, user_embeddings, v_feat, t_feat,
                             item_embeddings=item_embeddings if config.use_item_emb else None,
                             batch_edges=batch_edges,
@@ -270,7 +270,7 @@ for epoch in range(1, config.num_epochs + 1):
         with g.local_scope():
             new_g = g
 
-            if method == "mig":
+            if method == "one_game_base1":
                 user_h, item_h = forward(new_g)
                 mf_losses = compute_info_bpr_loss(user_h, item_h, batch_edges, num_negs=config.num_negs,
                                                   reduction="none")
@@ -281,7 +281,7 @@ for epoch in range(1, config.num_epochs + 1):
                 optimizer.step()
 
             else:
-                if method == "mig_gt_gen":
+                if method == "one_game":
                     outputs = forward(new_g, batch_edges=batch_edges,
                                       batch_indices=batch_edge_indices, return_all=True)
                     (user_h, item_h, user_emb_h, item_emb_h, user_t_h, item_t_h,
@@ -302,7 +302,7 @@ for epoch in range(1, config.num_epochs + 1):
                        + l2_loss * config.l2_coef \
                        + p_args.meanflows_weight * meanflows_loss
 
-                if method != "mig":
+                if method != "one_game_base1":
                     pos_user_h = user_h[batch_edges[:, 0]]
                     pos_z_memory_h = z_memory_h[batch_edges[:, 1] + num_users]
                     unsmooth_logits = (pos_user_h.unsqueeze(1) @ pos_z_memory_h.permute(0, 2, 1)).squeeze(1)
@@ -318,7 +318,7 @@ for epoch in range(1, config.num_epochs + 1):
                 loss.backward()
                 optimizer.step()
 
-                if method == "mig_gt_gen":
+                if method == "one_game":
                     batch_size = batch_edges.size(0)
                     total_samples = batch_size * 2
                     ppo_buffer['states'].append(state.detach().cpu())

@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
-from mig_gt.layers.common import MyMLP
+from one_game.layers.common import MyMLP
 
-from mig_gt.layers.mgdcf import MGDCF
+from one_game.layers.GNNBackbone import MGDCF
 
 
 class MMMLP(nn.Module):

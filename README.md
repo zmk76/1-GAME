@@ -18,7 +18,7 @@
 
 ```bash
 # Run the following command:
-python main.py --gpu 0 --seed 1 --dataset $DATASET --result_dir results --method mig_gt_gen
+python main.py --gpu 0 --seed 1 --dataset $DATASET --result_dir results --method one_game
 # Note: $DATASET can be 'baby', 'sports', or 'clothing'.
 ```
 

@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 import typing
-from mig_gt.utils.arg_utils import parse_bool, parse_int_list, parse_str_list
+from one_game.utils.arg_utils import parse_bool, parse_int_list, parse_str_list
 
 
 @dataclass

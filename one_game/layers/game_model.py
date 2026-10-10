@@ -9,9 +9,9 @@ import dgl.sampling
 import torch.distributions as D
 
 from Params import p_args
-from mig_gt.layers.GraphMeanFlows import GraphMeanFlow, Denoise
-from mig_gt.layers.common import MyLinear, MyMLP, get_activation
-from mig_gt.layers.mgdcf import MGDCF
+from one_game.layers.OneStepGM import GraphMeanFlow, Denoise
+from one_game.layers.common import MyLinear, MyMLP, get_activation
+from one_game.layers.GNNBackbone import MGDCF
 
 device = torch.device(f'cuda:{p_args.gpu}' if torch.cuda.is_available() else 'cpu')
 
@@ -115,7 +115,7 @@ def ppo_update(policy_net, value_net, opt_p, opt_v,
 
 
 
-class MIGGT(nn.Module):
+class ONEGAME(nn.Module):
     def __init__(self,
                  k_e, k_t, k_v,
                  alpha, beta,

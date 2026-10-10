@@ -111,7 +111,7 @@ class GraphMeanFlow(torch.nn.Module):
     def mean_flat(self, tensor):
         return tensor.mean(dim=list(range(1, len(tensor.shape))))
 
-    # Single-Step Reverse Generation: From Anisotropic Noise to Cross-Modal Contrastive Views in One Step
+    # one-Step Reverse Generation: From Anisotropic Noise to Cross-Modal Contrastive Views in One Step
     @torch.no_grad()
     def p_sample(self, model, x_start, sampling_steps=None, noise=None):
         model.eval()

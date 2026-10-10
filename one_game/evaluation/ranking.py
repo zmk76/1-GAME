@@ -3,9 +3,9 @@
 from tqdm import tqdm
 import numpy as np
 import torch
-from mig_gt.metrics.ranking import ndcg_score, precision_score, recall_score
+from one_game.metrics.ranking import ndcg_score, precision_score, recall_score
 
-from mig_gt.vector_search.vector_search import VectorSearchEngine
+from one_game.vector_search.vector_search import VectorSearchEngine
 
 
 

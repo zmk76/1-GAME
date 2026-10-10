@@ -2,8 +2,8 @@
 
 from dataclasses import dataclass
 import typing
-from mig_gt.utils.arg_utils import parse_bool, parse_int_list, parse_str_list
-from mig_gt.configs.mm_mgdcf_default_config import MMMGDCFConfig
+from one_game.utils.arg_utils import parse_bool, parse_int_list, parse_str_list
+from one_game.configs.mm_mgdcf_default_config import MMMGDCFConfig
 
 
 def load_masked_mm_mgdcf_default_config(dataset_name):
