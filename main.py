@@ -250,7 +250,7 @@ run_log_dir = "run_logs"
 run_log_fname = "{}.json".format(p_args.dataset)
 run_log_fpath = os.path.join(run_log_dir, run_log_fname)
 
-ppo_buffer = {
+arl_buffer = {
     'states': [], 'actions': [], 'rewards': [], 'advantages': [],
     'dones': [], 'old_log_probs': []
 }
@@ -258,7 +258,7 @@ ppo_buffer = {
 for epoch in range(1, config.num_epochs + 1):
     epoch_start_time = time.time()
 
-    ppo_buffer = {
+    arl_buffer = {
         'states': [], 'actions': [], 'rewards': [], 'advantages': [],
         'dones': [], 'old_log_probs': []
     }
@@ -321,34 +321,34 @@ for epoch in range(1, config.num_epochs + 1):
                 if method == "one_game":
                     batch_size = batch_edges.size(0)
                     total_samples = batch_size * 2
-                    ppo_buffer['states'].append(state.detach().cpu())
-                    ppo_buffer['actions'].append(action.detach().cpu())
-                    ppo_buffer['rewards'].append(reward.detach().cpu())
-                    ppo_buffer['advantages'].append(advantage.detach().cpu())
-                    ppo_buffer['old_log_probs'].append(log_prob.detach().cpu())
-                    ppo_buffer['dones'].extend([0] * total_samples)
+                    arl_buffer['states'].append(state.detach().cpu())
+                    arl_buffer['actions'].append(action.detach().cpu())
+                    arl_buffer['rewards'].append(reward.detach().cpu())
+                    arl_buffer['advantages'].append(advantage.detach().cpu())
+                    arl_buffer['old_log_probs'].append(log_prob.detach().cpu())
+                    arl_buffer['dones'].extend([0] * total_samples)
 
                     max_buffer_steps = 50
-                    if len(ppo_buffer['states']) > max_buffer_steps:
-                        ppo_buffer['states'] = ppo_buffer['states'][-max_buffer_steps:]
-                        ppo_buffer['actions'] = ppo_buffer['actions'][-max_buffer_steps:]
-                        ppo_buffer['rewards'] = ppo_buffer['rewards'][-max_buffer_steps:]
-                        ppo_buffer['advantages'] = ppo_buffer['advantages'][-max_buffer_steps:]
-                        ppo_buffer['old_log_probs'] = ppo_buffer['old_log_probs'][-max_buffer_steps:]
-                        ppo_buffer['dones'] = ppo_buffer['dones'][-max_buffer_steps * total_samples:]
+                    if len(arl_buffer['states']) > max_buffer_steps:
+                        arl_buffer['states'] = arl_buffer['states'][-max_buffer_steps:]
+                        arl_buffer['actions'] = arl_buffer['actions'][-max_buffer_steps:]
+                        arl_buffer['rewards'] = arl_buffer['rewards'][-max_buffer_steps:]
+                        arl_buffer['advantages'] = arl_buffer['advantages'][-max_buffer_steps:]
+                        arl_buffer['old_log_probs'] = arl_buffer['old_log_probs'][-max_buffer_steps:]
+                        arl_buffer['dones'] = arl_buffer['dones'][-max_buffer_steps * total_samples:]
 
-                    if step % 4 == 0 and len(ppo_buffer['states']) >= 32:
-                        states_cat = torch.cat(ppo_buffer['states'], dim=0).to(device)
-                        actions_cat = torch.cat(ppo_buffer['actions'], dim=0).to(device)
-                        rewards_cat = torch.cat(ppo_buffer['rewards'], dim=0).to(device)
-                        adv_cat = torch.cat(ppo_buffer['advantages'], dim=0).to(device)
-                        dones_cat = torch.tensor(ppo_buffer['dones'], device=device)
-                        old_log_probs_cat = torch.cat(ppo_buffer['old_log_probs'], dim=0).to(device)
+                    if step % 4 == 0 and len(arl_buffer['states']) >= 32:
+                        states_cat = torch.cat(arl_buffer['states'], dim=0).to(device)
+                        actions_cat = torch.cat(arl_buffer['actions'], dim=0).to(device)
+                        rewards_cat = torch.cat(arl_buffer['rewards'], dim=0).to(device)
+                        adv_cat = torch.cat(arl_buffer['advantages'], dim=0).to(device)
+                        dones_cat = torch.tensor(arl_buffer['dones'], device=device)
+                        old_log_probs_cat = torch.cat(arl_buffer['old_log_probs'], dim=0).to(device)
                         model.update_generator(states_cat, actions_cat, old_log_probs_cat,
                                                rewards_cat, dones_cat, adv_cat)
 
-                        for key in ppo_buffer:
-                            ppo_buffer[key] = []
+                        for key in arl_buffer:
+                            arl_buffer[key] = []
 
                         torch.cuda.empty_cache()
 

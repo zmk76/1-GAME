@@ -78,7 +78,7 @@ class ValueNetwork(nn.Module):
         return self.net(state).squeeze(-1)
 
 
-def ppo_update(policy_net, value_net, opt_p, opt_v,
+def arl_update(policy_net, value_net, opt_p, opt_v,
                states, actions, old_log_probs, rewards, dones, advantages,
                clip_eps=0.2, epochs=5, batch_size=64):
     N = states.size(0)
@@ -563,7 +563,7 @@ class ONEGAME(nn.Module):
     # Update the anisotropic agent and value network.
     def update_generator(self, states, actions, old_log_probs, rewards, dones, advantages):
         if self.use_gen:
-            ppo_update(self.generator, self.value_net,
+            arl_update(self.generator, self.value_net,
                        self.gen_opt, self.val_opt,
                        states, actions, old_log_probs, rewards, dones, advantages,
                        clip_eps=p_args.clip_eps, epochs=5, batch_size=64)
