@@ -15,15 +15,13 @@ parser.add_argument('--ssl_reg', default=1e-2, type=float, help='weight for cont
 parser.add_argument('--mf_lr', default=5e-3, type=float, help='meanflows learning rate')   #default=1e-2 -> default=5e-3
 
 
-
-#修改点--新增
 parser.add_argument('--flow_ratio', default=0.5, type=float, help='meanflows flow_ratio (r=t sampling ratio)')# ← 加这一行
 parser.add_argument('--clip_eps', type=float, default=0.2, help='PPO clip epsilon')
 parser.add_argument('--walk_steps', default=7, type=int, help='random walk steps (S) for negative sampling')
 
 parser.add_argument('--meanflows_weight', type=float, default=1.0,help='weight for meanflows loss (ELBO + cl)')
 parser.add_argument('--unsmooth_weight', type=float, default=1.0,help='weight for unsmooth loss (λ3 in Eq.14)')
-############
+
 
 
 

@@ -11,14 +11,7 @@ class MGDCF(nn.Module):
     CACHE_KEY = "mgdcf_weight"
 
     def __init__(self, k, alpha, beta, x_drop_rate, edge_drop_rate, z_drop_rate, *args, **kwargs):
-        """
-        :param k: number of iterations.
-        :param alpha: a hyperparameter of MGDCF.
-        :param beta: a hyperparameter of MGDCF.
-        :param x_drop_rate: dropout rate of input embeddings.
-        :param edge_drop_rate: dropout rate of edge weights.
-        :param z_drop_rate: dropout rate of output embeddings.
-        """
+
 
         super().__init__(*args, **kwargs)
 
@@ -41,29 +34,6 @@ class MGDCF(nn.Module):
     def compute_gamma(cls, alpha, beta, k):
         return np.power(beta, k) + alpha * np.sum([np.power(beta, i) for i in range(k)])
 
-    # @classmethod
-    # def build_homo_graph(cls, user_item_edges, num_users=None, num_items=None):
-
-    #     user_index, item_index = user_item_edges.T
-
-    #     if num_users is None:
-    #         num_users = np.max(user_index) + 1
-
-    #     if num_items is None:
-    #         num_items = np.max(item_index) + 1
-
-    #     num_homo_nodes = num_users + num_items
-    #     homo_item_index = item_index + num_users
-    #     src = user_index
-    #     dst = homo_item_index
-
-    #     g = dgl.graph((src, dst), num_nodes=num_homo_nodes)
-    #     g =  dgl.add_reverse_edges(g)
-    #     # Different from LightGCN, MGDCF considers self-loop
-    #     g = dgl.add_self_loop(g)
-    #     g = dgl.to_simple(g)
-
-    #     return g
 
     @classmethod
     def build_sorted_homo_graph(cls, user_item_edges, num_users=None, num_items=None):
@@ -89,10 +59,7 @@ class MGDCF(nn.Module):
 
         assert g.num_edges() == src.size(0)
 
-        # g =  dgl.add_reverse_edges(g)
-        # # Different from LightGCN, MGDCF considers self-loop
-        # g = dgl.add_self_loop(g)
-        # g = dgl.to_simple(g)
+
 
         return g
 
@@ -102,8 +69,7 @@ class MGDCF(nn.Module):
 
         CACHE_KEY = MGDCF.CACHE_KEY
 
-        # if CACHE_KEY in g.edata:
-        #     return
+
 
         degs = g.in_degrees()
         src_norm = degs.pow(-0.5)
@@ -125,8 +91,6 @@ class MGDCF(nn.Module):
         edge_weight = g.edata[CACHE_KEY]
         dropped_edge_weight = self.edge_dropout(edge_weight)
 
-        # print(edge_weight)
-        # asdfadsf
 
         h0 = self.x_dropout(x)
         h = h0
@@ -157,8 +121,4 @@ class MGDCF(nn.Module):
             h_list = [self.z_dropout(h) for h in h_list]
             return h_list
 
-        # if return_all:
-        #     return h_list[-1], h_list
-        # else:
-        #     return h_list[-1]
 

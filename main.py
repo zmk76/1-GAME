@@ -45,7 +45,6 @@ device = torch.device(f'cuda:{p_args.gpu}' if torch.cuda.is_available() else 'cp
 train_user_item_edges, valid_user_item_edges, test_user_item_edges, train_user_items_dict, train_mask_user_items_dict, valid_user_items_dict, valid_mask_user_items_dict, test_user_items_dict, test_mask_user_items_dict, num_users, num_items, v_feat, t_feat = load_data(
     p_args.dataset)
 
-# 合并所有交互边（训练+验证+测试）
 all_edges = torch.cat([
     torch.tensor(train_user_item_edges, device='cpu'),
     torch.tensor(valid_user_item_edges, device='cpu'),
@@ -117,16 +116,8 @@ elif method == "mig_gt":
         bn=config.bn,
         num_clusters=config.num_clusters,
         num_samples=config.num_samples,
-
-
-        #修改点--新增
-        flow_ratio=p_args.flow_ratio,  # ← 加这一行
-
-        walk_steps=p_args.walk_steps,  # ← 新增
-        #########
-
-
-
+        flow_ratio=p_args.flow_ratio,
+        walk_steps=p_args.walk_steps,
         use_gen=False,
     ).to(device)
 
@@ -148,25 +139,10 @@ elif method == "mig_gt_gen":
         bn=config.bn,
         num_clusters=config.num_clusters,
         num_samples=config.num_samples,
-
-
-
-        #修改点--新增
-        flow_ratio=p_args.flow_ratio,  # ← 加这一行
-
-        walk_steps=p_args.walk_steps,  # ← 新增
-        ###########
-
-
-
-
-
+        flow_ratio=p_args.flow_ratio,
+        walk_steps=p_args.walk_steps,
         use_gen=True,
-        #修改点--删除 原：walk_steps=7,
-        ###walk_steps=7,
-        ##########
     ).to(device)
-    # 传入训练边以预计算负样本
     model.set_graph(g, v_feat, t_feat, num_users, num_items,
                     all_edges=all_edges,
                     train_edges=train_user_item_edges)
@@ -288,10 +264,8 @@ for epoch in range(1, config.num_epochs + 1):
     }
 
     for step, (batch_edge_indices, batch_edges) in enumerate(train_edges_data_loader):
-        # 将 batch_edge_indices 移至 GPU（与 batch_edges 同步）
         batch_edges = batch_edges.to(device)
-        batch_edge_indices = batch_edge_indices.to(device)   # 新增：确保索引也在 GPU
-
+        batch_edge_indices = batch_edge_indices.to(device)
         model.train()
         with g.local_scope():
             new_g = g
@@ -306,7 +280,7 @@ for epoch in range(1, config.num_epochs + 1):
                 loss.backward()
                 optimizer.step()
 
-            else:  # mig_gt 或 mig_gt_gen
+            else:
                 if method == "mig_gt_gen":
                     outputs = forward(new_g, batch_edges=batch_edges,
                                       batch_indices=batch_edge_indices, return_all=True)
@@ -324,14 +298,10 @@ for epoch in range(1, config.num_epochs + 1):
                 l2_loss = compute_l2_loss([user_h, item_h])
 
 
-
-                #####修改点--修改
-                # 主推荐损失：BPR + L2 + 加权的 meanflows_loss
                 loss = mf_losses.sum() \
                        + l2_loss * config.l2_coef \
                        + p_args.meanflows_weight * meanflows_loss
 
-                # 过平滑损失（带权重）
                 if method != "mig":
                     pos_user_h = user_h[batch_edges[:, 0]]
                     pos_z_memory_h = z_memory_h[batch_edges[:, 1] + num_users]
@@ -342,7 +312,7 @@ for epoch in range(1, config.num_epochs + 1):
                         reduction="none"
                     ).sum()
                     loss = loss + p_args.unsmooth_weight * unsmooth_loss
-                    #############
+
 
                 optimizer.zero_grad()
                 loss.backward()

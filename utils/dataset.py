@@ -1,13 +1,5 @@
 # coding: utf-8
-# @email: enoche.chow@gmail.com
-#
-# updated: Mar. 25, 2022
-# Filled non-existing raw features with non-zero after encoded from encoders
 
-"""
-Data pre-processing
-##########################
-"""
 from logging import getLogger
 from collections import Counter
 import os
@@ -23,11 +15,11 @@ class RecDataset(object):
         self.config = config
         self.logger = getLogger()
 
-        # data path & files
+
         self.dataset_name = config['dataset']
         self.dataset_path = os.path.abspath(config['data_path']+self.dataset_name)
 
-        # dataframe
+
         self.uid_field = self.config['USER_ID_FIELD']
         self.iid_field = self.config['ITEM_ID_FIELD']
         self.splitting_label = self.config['inter_splitting_label']
@@ -35,14 +27,14 @@ class RecDataset(object):
         if df is not None:
             self.df = df
             return
-        # if all files exists
+
         check_file_list = [self.config['inter_file_name']]
         for i in check_file_list:
             file_path = os.path.join(self.dataset_path, i)
             if not os.path.isfile(file_path):
                 raise ValueError('File {} not exist'.format(file_path))
 
-        # load rating file from data path?
+
         self.load_inter_graph(config['inter_file_name'])
         self.item_num = int(max(self.df[self.iid_field].values)) + 1
         self.user_num = int(max(self.df[self.uid_field].values)) + 1
@@ -56,33 +48,25 @@ class RecDataset(object):
 
     def split(self):
         dfs = []
-        # splitting into training/validation/test
+
         for i in range(3):
             temp_df = self.df[self.df[self.splitting_label] == i].copy()
             temp_df.drop(self.splitting_label, inplace=True, axis=1)        # no use again
             dfs.append(temp_df)
         if self.config['filter_out_cod_start_users']:
-            # filtering out new users in val/test sets
+
             train_u = set(dfs[0][self.uid_field].values)
             for i in [1, 2]:
                 dropped_inter = pd.Series(True, index=dfs[i].index)
                 dropped_inter ^= dfs[i][self.uid_field].isin(train_u)
                 dfs[i].drop(dfs[i].index[dropped_inter], inplace=True)
 
-        # wrap as RecDataset
+
         full_ds = [self.copy(_) for _ in dfs]
         return full_ds
 
     def copy(self, new_df):
-        """Given a new interaction feature, return a new :class:`Dataset` object,
-                whose interaction feature is updated with ``new_df``, and all the other attributes the same.
 
-                Args:
-                    new_df (pandas.DataFrame): The new interaction feature need to be updated.
-
-                Returns:
-                    :class:`~Dataset`: the new :class:`~Dataset` object, whose interaction feature has been updated.
-                """
         nxt = RecDataset(self.config, new_df)
 
         nxt.item_num = self.item_num
@@ -96,15 +80,14 @@ class RecDataset(object):
         return self.item_num
 
     def shuffle(self):
-        """Shuffle the interaction records inplace.
-        """
+
         self.df = self.df.sample(frac=1, replace=False).reset_index(drop=True)
 
     def __len__(self):
         return len(self.df)
 
     def __getitem__(self, idx):
-        # Series result
+
         return self.df.iloc[idx]
 
     def __repr__(self):

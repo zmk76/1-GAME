@@ -73,6 +73,7 @@ class GraphMeanFlow(torch.nn.Module):
         r = torch.tensor(r_np, device=device)
         return t, r
 
+    # 1-GM training loss
     def training_losses2(self, model, x_start, targetEmbeds=None, ancs=None, noise=None):
         n = x_start.shape[0]
         device = x_start.device
@@ -110,6 +111,7 @@ class GraphMeanFlow(torch.nn.Module):
     def mean_flat(self, tensor):
         return tensor.mean(dim=list(range(1, len(tensor.shape))))
 
+    # Single-Step Reverse Generation: From Anisotropic Noise to Cross-Modal Contrastive Views in One Step
     @torch.no_grad()
     def p_sample(self, model, x_start, sampling_steps=None, noise=None):
         model.eval()

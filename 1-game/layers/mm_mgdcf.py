@@ -77,15 +77,13 @@ class MMMGDCF(nn.Module):
 
         super().__init__()
 
-        # self.emb_mgdcf = MGDCF(4, alpha, beta, 0.0, edge_drop_rate, z_drop_rate)
-        # self.t_mgdcf = MGDCF(k, alpha, beta, 0.0, edge_drop_rate, z_drop_rate)
-        # self.v_mgdcf = MGDCF(3, alpha, beta, 0.0, edge_drop_rate, z_drop_rate)
+
 
         self.emb_mgdcf = MGDCF(k_e, alpha, beta, 0.0, edge_drop_rate, 0.0) if k_e >= 0 else None
         self.t_mgdcf = MGDCF(k_t, alpha, beta, 0.0, edge_drop_rate, 0.0) if k_t >= 0 else None
         self.v_mgdcf = MGDCF(k_v, alpha, beta, 0.0, edge_drop_rate, 0.0) if k_v >= 0 else None
 
-        # self.homo_t_mgdcf = MGDCF(1, alpha, beta, 0.0, edge_drop_rate, 0.0) if k_t >= 0 else None
+
 
         self.z_dropout = nn.Dropout(z_drop_rate)
 
@@ -97,34 +95,7 @@ class MMMGDCF(nn.Module):
 
         self.use_dual = use_dual
 
-        # self.t_mlp = nn.Sequential(
-        #     nn.Dropout(input_feat_drop_rate),
-        #     MyMLP(
-        #         item_t_in_channels,
-        #         # item_t_hidden_channels_list,
-        #         [item_t_hidden_channels_list[-1]],
-        #         activation="prelu",
-        #         drop_rate=feat_drop_rate,
-        #         bn=True,
-        #         output_activation="none",#"prelu",
-        #         output_drop_rate=0.0,
-        #         output_bn=False#True
-        #     )
-        # )
 
-        # self.t_mlp = nn.Sequential(
-        #     nn.Dropout(input_feat_drop_rate),
-        #     MyMLP(
-        #         item_t_in_channels,
-        #         item_t_hidden_channels_list,
-        #         activation="prelu",
-        #         drop_rate=feat_drop_rate,
-        #         bn=True,
-        #         output_activation="prelu",
-        #         output_drop_rate=0.0,
-        #         output_bn=True
-        #     )
-        # )
 
         self.t_mlp = nn.Sequential(
             nn.Dropout(input_feat_drop_rate),
@@ -205,11 +176,7 @@ class MMMGDCF(nn.Module):
                 homo_t_h
             ], dim=0)
 
-            # t_h = torch.concat([
-            #     t_h[:num_users],
-            #     t_h[num_users:] + homo_t_h
-            #     # t_h[num_users:]
-            # ], dim=0)
+
 
         combined_h = None
         for i, h in enumerate([emb_h, t_h, v_h]):
@@ -226,14 +193,7 @@ class MMMGDCF(nn.Module):
         t_h = self.z_dropout(t_h) if t_h is not None else None
         v_h = self.z_dropout(v_h) if v_h is not None else None
 
-        # h = emb_h + t_h + v_h
-        # h = emb_h
-        # h = t_h
-        # h = emb_h + t_h
-        # h = emb_h + v_h
-        # h = v_h
 
-        # print("combined_h:", combined_h)
 
         if return_all:
             return combined_h, emb_h, t_h, v_h, encoded_t, encoded_v

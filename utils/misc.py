@@ -1,8 +1,5 @@
 # coding: utf-8
-# @email: enoche.chow@gmail.com
-"""
-modified from UNITER
-"""
+
 import json
 import random
 import sys
@@ -12,7 +9,7 @@ import numpy as np
 
 
 class NoOp(object):
-    """ useful for distributed training No-Ops """
+
     def __getattr__(self, name):
         return self.noop
 

@@ -3,15 +3,10 @@ import torch
 import torch.nn.functional as F
 
 class MyLinear(nn.Linear):
-    # pass
     def reset_parameters(self) -> None:
         nn.init.xavier_uniform_(self.weight)
 
-        # print("init weight:")
-        # print(self.weight)
-        # asdfasdfadf
 
-        # nn.init.xavier_normal_(self.weight)
         if self.bias is not None:
             nn.init.zeros_(self.bias)
 
@@ -19,9 +14,9 @@ class MyLinear(nn.Linear):
 
 
 class MyNormalLinear(nn.Linear):
-    # pass
+
     def reset_parameters(self) -> None:
-        # nn.init.xavier_uniform_(self.weight)
+
         nn.init.xavier_normal_(self.weight)
         if self.bias is not None:
             nn.init.zeros_(self.bias)
@@ -38,7 +33,7 @@ class MyPReLU(nn.Module):
         self.num_parameters = num_parameters
         super().__init__()
 
-        # use alpha instead of weight
+
         self.alpha = nn.parameter.Parameter(torch.empty(num_parameters, **factory_kwargs).fill_(init))
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
@@ -68,10 +63,6 @@ def create_act(name=None):
         raise Exception()
 
 
-# class MyLinear(nn.Linear):
-#     def reset_parameters(self) -> None:
-#         nn.init.xavier_normal_(self.weight)
-#         nn.init.zeros_(self.bias)
 
 
 def get_activation(activation):
@@ -92,21 +83,21 @@ class MyMLP(nn.Module):
         super().__init__()
 
         layers = []
-        units_list = [in_channels] + units_list  # Add in_channels to the list of units
+        units_list = [in_channels] + units_list
 
         for i in range(len(units_list) - 1):
-            layers.append(MyLinear(units_list[i], units_list[i+1]))  # Create a linear layer
-            # layers.append(MyNormalLinear(units_list[i], units_list[i+1]))  # Create a linear layer
+            layers.append(MyLinear(units_list[i], units_list[i+1]))
+
 
 
             if i < len(units_list) - 2:
                 if bn:
-                    layers.append(nn.BatchNorm1d(units_list[i+1]))  # Add a batch normalization layer
+                    layers.append(nn.BatchNorm1d(units_list[i+1]))
 
                 if ln:
                     layers.append(nn.LayerNorm(units_list[i+1]))
                 
-                layers.append(get_activation(activation))  # Add the PReLU activation function
+                layers.append(get_activation(activation))
                 layers.append(nn.Dropout(drop_rate))
             else:
                 if output_bn:
@@ -115,7 +106,7 @@ class MyMLP(nn.Module):
                 if output_ln:
                     layers.append(nn.LayerNorm(units_list[i+1]))
 
-                layers.append(get_activation(output_activation))  # Add the PReLU activation function
+                layers.append(get_activation(output_activation))
                 layers.append(nn.Dropout(output_drop_rate))
 
         self.model = nn.Sequential(*layers)

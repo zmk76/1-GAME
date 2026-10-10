@@ -1,7 +1,6 @@
 
 
 def parse_bool(s):
-    # print("parse_bool: ", s)
     if s == "True":
         return True
     elif s == "False":

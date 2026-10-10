@@ -16,19 +16,17 @@ from mig_gt.layers.mgdcf import MGDCF
 device = torch.device(f'cuda:{p_args.gpu}' if torch.cuda.is_available() else 'cpu')
 
 
-# 双向随机游走采样器（图在 GPU 上）
+# Long-path Random Walk
 class RandomWalkSampler:
     def __init__(self, g, num_steps=2):
         self.g = g
         self.num_steps = num_steps
 
     def sample(self, start_ids, start_type='user'):
-        # start_ids 应已在 GPU 上
         traces = dgl.sampling.random_walk(self.g, start_ids, length=self.num_steps)[0]
-        return traces[:, -1]  # 取最后一步
+        return traces[:, -1]
 
-
-# PPO 组件
+# Adversarial Reinforcement Learning
 class Generator(nn.Module):
     def __init__(self, input_dim, hidden_dims, output_dim):
         super().__init__()
@@ -116,7 +114,7 @@ def ppo_update(policy_net, value_net, opt_p, opt_v,
             opt_v.step()
 
 
-# 主模型 MIGGT
+
 class MIGGT(nn.Module):
     def __init__(self,
                  k_e, k_t, k_v,
@@ -135,15 +133,7 @@ class MIGGT(nn.Module):
                  num_clusters=0,
                  num_samples=0,
                  use_dual=False,
-
-
-
-                 #修改点--新增
-                 flow_ratio=0.5,  # ← 加这一行
-                 ########
-
-
-
+                 flow_ratio=0.5,
                  use_gen=False,
                  walk_steps=7,
                  *args, **kwargs):
@@ -193,15 +183,7 @@ class MIGGT(nn.Module):
         self.graph_meanflow = GraphMeanFlow(
             embed_dim=user_in_channels,
             normalizer=['mean_std', 0.0, 1.0],
-
-
-
-            #修改点--修改
-            flow_ratio=flow_ratio,          #原：flow_ratio=0.5,
-            #######
-
-
-
+            flow_ratio=flow_ratio,
             time_dist=['lognorm', -0.4, 1.0],
             semantic_loss_weight=1.0,
         ).to(device)
@@ -241,21 +223,17 @@ class MIGGT(nn.Module):
             self.num_items = None
             self.all_interaction_set = None
 
-            # 预计算的负样本索引（直接放在 GPU）
+
             self.neg_item_ids = None
             self.neg_user_ids = None
 
-    # ---------- 预计算采样函数（图在GPU，所有张量也在GPU） ----------
+
     def _sample_negative_ids(self, u, i):
-        """为单个正边 (u, i) 采样负物品和负用户，保证无交互"""
         import random
         max_tries = 10
-        graph_device = self.g.device  # 图所在设备
-
-        # 负物品
+        graph_device = self.g.device
         neg_item = None
         for _ in range(max_tries):
-            # 构造张量时指定设备
             neg_node = self.walk_sampler.sample(torch.tensor([u], device=graph_device), start_type='user')[0]
             if neg_node < 0:
                 neg_node = u + self.num_users
@@ -272,7 +250,6 @@ class MIGGT(nn.Module):
                     neg_item = cand
                     break
 
-        # 负用户
         neg_user = None
         for _ in range(max_tries):
             neg_node = self.walk_sampler.sample(torch.tensor([i + self.num_users], device=graph_device), start_type='item')[0]
@@ -294,7 +271,6 @@ class MIGGT(nn.Module):
         return neg_item, neg_user
 
     def precompute_negatives(self, train_edges):
-        """预计算负样本，结果直接存入 GPU 张量"""
         if not self.use_gen:
             return
         if torch.is_tensor(train_edges):
@@ -309,7 +285,6 @@ class MIGGT(nn.Module):
             neg_users.append(neg_u)
             if (idx + 1) % 5000 == 0:
                 print(f"  processed {idx+1}/{num_edges}")
-        # 直接存为 GPU 张量
         self.neg_item_ids = torch.tensor(neg_items, dtype=torch.long, device=device)
         self.neg_user_ids = torch.tensor(neg_users, dtype=torch.long, device=device)
         print("Precomputation done.")
@@ -333,12 +308,10 @@ class MIGGT(nn.Module):
                 self.precompute_negatives(train_edges)
 
     def sample_negative_bidirectional(self, user_ids, item_ids, user_embeddings):
-        """在线采样（fallback），所有张量都在 GPU"""
         max_tries = 10
         device = user_ids.device
         batch_size = len(user_ids)
 
-        # 负物品
         neg_item_ids = None
         for _ in range(max_tries):
             neg_item_node_ids = self.walk_sampler.sample(user_ids, start_type='user')
@@ -359,7 +332,6 @@ class MIGGT(nn.Module):
                 while (u.item(), neg_item_ids[j].item()) in self.all_interaction_set:
                     neg_item_ids[j] = torch.randint(0, self.num_items, (1,), device=device).item()
 
-        # 负用户
         neg_user_ids = None
         item_node_ids = item_ids + self.num_users
         for _ in range(max_tries):
@@ -380,7 +352,6 @@ class MIGGT(nn.Module):
                 while (neg_user_ids[j].item(), i.item()) in self.all_interaction_set:
                     neg_user_ids[j] = torch.randint(0, self.num_users, (1,), device=device).item()
 
-        # 编码
         w_v, w_t = torch.softmax(self.fusion_weights, dim=0)
         neg_item_v_proj = self.v_ff(self.v_feat[neg_item_ids])
         neg_item_t_proj = self.t_ff(self.t_feat[neg_item_ids])
@@ -469,10 +440,7 @@ class MIGGT(nn.Module):
 
             combined_noise = action_all
 
-            # 使用预计算负样本（所有张量已在 GPU）
             if batch_indices is not None and self.neg_item_ids is not None and self.neg_user_ids is not None:
-                # batch_indices 也应在 GPU，但为确保安全，我们仍用 .to(device) 以防万一
-                # 但 main.py 中已将其移到了 GPU
                 neg_item_ids = self.neg_item_ids[batch_indices]
                 neg_user_ids = self.neg_user_ids[batch_indices]
                 w_v, w_t = torch.softmax(self.fusion_weights, dim=0)
@@ -487,7 +455,6 @@ class MIGGT(nn.Module):
                     batch_edges[:, 0], batch_edges[:, 1], user_embeddings
                 )
 
-            # MeanFlow 损失
             loss_vis, _ = self.graph_meanflow.training_losses2(
                 self.meanflows_denoiser_visual, v_h, noise=combined_noise
             )
@@ -496,7 +463,6 @@ class MIGGT(nn.Module):
             )
             meanflows_loss = loss_vis.mean() + loss_txt.mean()
 
-            # 对比学习
             meanflows_Embeds_visual = self.graph_meanflow.p_sample(
                 self.meanflows_denoiser_visual, v_h, noise=combined_noise
             )
@@ -516,13 +482,12 @@ class MIGGT(nn.Module):
                        self.InfoNCELoss(item_emb_txt[b_idx], item_emb[b_idx], p_args.temp))
             meanflows_loss += cl_loss * p_args.ssl_reg
 
-            # 判别器损失
-            ######修改点--修改
+
             real_score_item = self.discriminator(neg_item_encoded.detach())
             real_score_user = self.discriminator(neg_user_encoded.detach())
             fake_score_item = self.discriminator(action_item.detach())
             fake_score_user = self.discriminator(action_user.detach())
-            ##########
+
 
             disc_loss = (
                     F.binary_cross_entropy_with_logits(real_score_item, torch.ones_like(real_score_item)) +
@@ -551,21 +516,19 @@ class MIGGT(nn.Module):
             log_prob = torch.cat([log_prob_user, log_prob_item], dim=0)
 
 
-            #修改点--修改
-            # ===== 判别器单独更新，不进入 total_loss =====
+
             self.disc_opt.zero_grad()
             disc_loss.backward()
             self.disc_opt.step()
 
-            # total_loss 只包含 meanflows_loss（ELBO + cl_loss）
+
             total_loss = meanflows_loss
 
             return (combined_h, emb_h, t_h, v_h, encoded_t, encoded_v, z_memory_h,
                     total_loss, reward, advantage, state, action, log_prob)
-        #############
+
 
         else:
-            # 普通模式
             meanflows_loss_visual, _ = self.graph_meanflow.training_losses2(self.meanflows_denoiser_visual, v_h)
             meanflows_loss_textual, _ = self.graph_meanflow.training_losses2(self.meanflows_denoiser_textual, t_h)
             meanflows_loss = meanflows_loss_visual.mean() + meanflows_loss_textual.mean()
@@ -597,9 +560,10 @@ class MIGGT(nn.Module):
         labels = torch.arange(n, device=z1.device)
         return F.cross_entropy(sim_matrix, labels)
 
+    # Update the anisotropic agent and value network.
     def update_generator(self, states, actions, old_log_probs, rewards, dones, advantages):
         if self.use_gen:
             ppo_update(self.generator, self.value_net,
                        self.gen_opt, self.val_opt,
                        states, actions, old_log_probs, rewards, dones, advantages,
-                       clip_eps=p_args.clip_eps, epochs=5, batch_size=64) #修改点--修改  原：clip_eps=0.2,
+                       clip_eps=p_args.clip_eps, epochs=5, batch_size=64)

@@ -15,11 +15,9 @@ def convert_freedom_dataset_to_common(split_dataset, num_users, mask_datasets):
     user_field = split_dataset.config['USER_ID_FIELD']
     item_field = split_dataset.config['ITEM_ID_FIELD']
 
-    # group by user_field
 
     user_item_edges = np.array(split_df[[user_field, item_field]].values, dtype=np.int64)
 
-    # convert to dict user=>items
     user_items_dict = split_df.groupby(user_field)[item_field].apply(list).to_dict()
     for user_index in range(num_users):
         if user_index not in user_items_dict:
@@ -44,14 +42,14 @@ def load_data(dataset):
     config = Config("FREEDOM", dataset, config_dict)
     init_logger(config)
     logger = getLogger()
-    # print config infor
+
     logger.info('██Server: \t' + platform.node())
     logger.info('██Dir: \t' + os.getcwd() + '\n')
     logger.info(config)
 
-    # load data
+
     dataset = RecDataset(config)
-    # print dataset statistics
+
     logger.info(str(dataset))
 
     train_dataset, valid_dataset, test_dataset = dataset.split()
@@ -71,7 +69,7 @@ def load_data(dataset):
     v_feat, t_feat = None, None
     if not config['end2end'] and config['is_multimodal_model']:
         dataset_path = os.path.abspath(config['data_path'] + config['dataset'])
-        # if file exist?
+
         v_feat_file_path = os.path.join(dataset_path, config['vision_feature_file'])
         t_feat_file_path = os.path.join(dataset_path, config['text_feature_file'])
         if os.path.isfile(v_feat_file_path):
@@ -81,16 +79,6 @@ def load_data(dataset):
 
         assert v_feat is not None or t_feat is not None, 'Features all NONE'
 
-
-    # print("train")
-    # print(train_user_items_dict[19439])
-    # print(train_mask_user_items_dict[19439])
-    # print("valid")
-    # print(valid_user_items_dict[19439])
-    # print(valid_mask_user_items_dict[19439])
-    # print("test")
-    # print(test_user_items_dict[19439])
-    # print(test_mask_user_items_dict[19439])
 
 
     return train_user_item_edges, valid_user_item_edges, test_user_item_edges, train_user_items_dict, train_mask_user_items_dict, valid_user_items_dict, valid_mask_user_items_dict, test_user_items_dict, test_mask_user_items_dict, num_users, num_items, v_feat, t_feat
@@ -143,7 +131,7 @@ def build_hetero_graph(user_item_edges, num_users, num_items):
 
     g = dgl_add_all_reversed_edges(g)
 
-    # compute deg for each node
+
 
 
     return g
