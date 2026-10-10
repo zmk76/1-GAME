@@ -4,8 +4,8 @@ import os
 import json
 from Params import p_args
 from one_game.configs.default_config import add_arguments_by_config_class, combine_args_into_config
-from one_game.configs.mm_mgdcf_default_config import MMMGDCFConfig
-from one_game.configs.masked_mm_mgdcf_default_config import load_masked_mm_mgdcf_default_config
+from one_game.configs.mm_gnn_default_config import MMGNNConfig
+from one_game.configs.masked_mm_gnn_default_config import load_masked_mm_gnn_default_config
 import sys
 import time
 import torch.nn.functional as F
@@ -13,7 +13,7 @@ import torch.nn.functional as F
 from one_game.layers.game_model import ONEGAME
 from one_game.vector_search.vector_search import VectorSearchEngine
 
-config = load_masked_mm_mgdcf_default_config(p_args.dataset)
+config = load_masked_mm_gnn_default_config(p_args.dataset)
 config = combine_args_into_config(config, p_args)
 
 print(config)
@@ -24,13 +24,13 @@ from one_game.utils.random_utils import reset_seed
 
 reset_seed(p_args.seed)
 
-from one_game.layers.MultimodalEncoder import MMMGDCF
+from one_game.layers.MultimodalEncoder import MMGNN
 import shortuuid
 from one_game.layers.sign import random_project, sign_pre_compute
 from one_game.losses import compute_info_bpr_loss, compute_l2_loss
 from one_game.utils.data_loader_utils import create_tensors_dataloader
 from one_game.evaluation.ranking import evaluate_mean_global_metrics
-from one_game.layers.GNNBackbone import MGDCF
+from one_game.layers.GNNBackbone import GNNBackbone
 from one_game.load_data import load_data
 import torch
 import numpy as np
@@ -63,7 +63,7 @@ if config.use_rp:
     v_feat = random_project(v_feat, t_feat.size(-1))
 
 num_train_user_item_edges = len(train_user_item_edges)
-g = MGDCF.build_sorted_homo_graph(train_user_item_edges, num_users=num_users, num_items=num_items).to(device)
+g = GNNBackbone.build_sorted_homo_graph(train_user_item_edges, num_users=num_users, num_items=num_items).to(device)
 assert g.num_edges() == num_train_user_item_edges * 2 + num_users + num_items
 
 num_nodes = g.num_nodes()
@@ -82,7 +82,7 @@ item_embeddings = torch.tensor(item_embeddings, dtype=torch.float32, requires_gr
 method = p_args.method
 
 if method == "one_game_base1":
-    model = MMMGDCF(
+    model = MMGNN(
         k_e=config.k_e, k_t=config.k_t, k_v=config.k_v,
         alpha=config.alpha, beta=config.beta,
         input_feat_drop_rate=config.input_feat_drop_rate,

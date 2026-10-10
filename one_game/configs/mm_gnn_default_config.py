@@ -6,7 +6,7 @@ from one_game.utils.arg_utils import parse_bool, parse_int_list, parse_str_list
 
 
 @dataclass
-class MMMGDCFConfig(object):
+class MMGNNConfig(object):
     lr: float
     lr_decay: float
     lr_decay_min: float

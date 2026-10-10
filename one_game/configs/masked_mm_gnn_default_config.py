@@ -3,12 +3,12 @@
 from dataclasses import dataclass
 import typing
 from one_game.utils.arg_utils import parse_bool, parse_int_list, parse_str_list
-from one_game.configs.mm_mgdcf_default_config import MMMGDCFConfig
+from one_game.configs.mm_gnn_default_config import MMGNNConfig
 
 
-def load_masked_mm_mgdcf_default_config(dataset_name):
+def load_masked_mm_gnn_default_config(dataset_name):
     if dataset_name == "baby":
-        config = MMMGDCFConfig(
+        config = MMGNNConfig(
             lr=8e-3,
             lr_decay=0.99,
             lr_decay_min=0.0,
@@ -41,7 +41,7 @@ def load_masked_mm_mgdcf_default_config(dataset_name):
             num_samples=20,
         )
     elif dataset_name == "sports":
-        config = MMMGDCFConfig(
+        config = MMGNNConfig(
             lr=5e-3,
             lr_decay=0.99,
             lr_decay_min=1e-3,
@@ -76,7 +76,7 @@ def load_masked_mm_mgdcf_default_config(dataset_name):
         )
 
     elif dataset_name == "clothing":
-        config = MMMGDCFConfig(
+        config = MMGNNConfig(
             lr=1e-3,
             lr_decay=0.999,
             lr_decay_min=1e-4,

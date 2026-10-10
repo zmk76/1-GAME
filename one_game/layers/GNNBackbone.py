@@ -7,8 +7,8 @@ import numpy as np
 import dgl.function as fn
 
 
-class MGDCF(nn.Module):
-    CACHE_KEY = "mgdcf_weight"
+class GNNBackbone(nn.Module):
+    CACHE_KEY = "gnn_backbone_weight"
 
     def __init__(self, k, alpha, beta, x_drop_rate, edge_drop_rate, z_drop_rate, *args, **kwargs):
 
@@ -18,9 +18,9 @@ class MGDCF(nn.Module):
         self.k = k
         self.alpha = alpha
         self.beta = beta
-        self.gamma = torch.tensor(MGDCF.compute_gamma(alpha, beta, k)).float()
+        self.gamma = torch.tensor(GNNBackbone.compute_gamma(alpha, beta, k)).float()
 
-        self.gammas = [torch.tensor(MGDCF.compute_gamma(alpha, beta, i)).float() for i in range(1, k + 1)]
+        self.gammas = [torch.tensor(GNNBackbone.compute_gamma(alpha, beta, i)).float() for i in range(1, k + 1)]
 
         self.x_drop_rate = x_drop_rate
         self.edge_drop_rate = edge_drop_rate
@@ -67,7 +67,7 @@ class MGDCF(nn.Module):
     @torch.no_grad()
     def norm_adj(cls, g):
 
-        CACHE_KEY = MGDCF.CACHE_KEY
+        CACHE_KEY = GNNBackbone.CACHE_KEY
 
 
 
@@ -85,8 +85,8 @@ class MGDCF(nn.Module):
 
     def forward(self, g, x, return_all=False):
 
-        CACHE_KEY = MGDCF.CACHE_KEY
-        MGDCF.norm_adj(g)
+        CACHE_KEY = GNNBackbone.CACHE_KEY
+        GNNBackbone.norm_adj(g)
 
         edge_weight = g.edata[CACHE_KEY]
         dropped_edge_weight = self.edge_dropout(edge_weight)

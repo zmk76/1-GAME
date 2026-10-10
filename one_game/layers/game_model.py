@@ -11,7 +11,7 @@ import torch.distributions as D
 from Params import p_args
 from one_game.layers.OneStepGM import GraphMeanFlow, Denoise
 from one_game.layers.common import MyLinear, MyMLP, get_activation
-from one_game.layers.GNNBackbone import MGDCF
+from one_game.layers.GNNBackbone import GNNBackbone
 
 device = torch.device(f'cuda:{p_args.gpu}' if torch.cuda.is_available() else 'cpu')
 
@@ -142,9 +142,9 @@ class ONEGAME(nn.Module):
         self.use_gen = use_gen
         self.walk_steps = walk_steps
 
-        self.emb_mgdcf = MGDCF(k_e, alpha, beta, 0.0, edge_drop_rate, 0.0) if k_e >= 0 else None
-        self.t_mgdcf = MGDCF(k_t, alpha, beta, 0.0, edge_drop_rate, 0.0) if k_t >= 0 else None
-        self.v_mgdcf = MGDCF(k_v, alpha, beta, 0.0, edge_drop_rate, 0.0) if k_v >= 0 else None
+        self.emb_gnn = GNNBackbone(k_e, alpha, beta, 0.0, edge_drop_rate, 0.0) if k_e >= 0 else None
+        self.t_gnn = GNNBackbone(k_t, alpha, beta, 0.0, edge_drop_rate, 0.0) if k_t >= 0 else None
+        self.v_gnn = GNNBackbone(k_v, alpha, beta, 0.0, edge_drop_rate, 0.0) if k_v >= 0 else None
 
         self.z_dropout = nn.Dropout(z_drop_rate)
         self.user_gnn_input_dropout = nn.Dropout(user_x_drop_rate)
@@ -374,8 +374,8 @@ class ONEGAME(nn.Module):
         num_users = user_embeddings.size(0)
         user_h = user_embeddings
 
-        if self.emb_mgdcf is not None:
-            emb_h = self.emb_mgdcf(
+        if self.emb_gnn is not None:
+            emb_h = self.emb_gnn(
                 g,
                 torch.cat([
                     self.user_gnn_input_dropout(user_h),
@@ -386,8 +386,8 @@ class ONEGAME(nn.Module):
         else:
             emb_h = None
 
-        if self.t_mgdcf is not None:
-            t_h = self.t_mgdcf(
+        if self.t_gnn is not None:
+            t_h = self.gnn(
                 g,
                 torch.cat([
                     torch.zeros_like(user_h),
@@ -397,8 +397,8 @@ class ONEGAME(nn.Module):
         else:
             t_h = None
 
-        if self.v_mgdcf is not None:
-            v_h = self.v_mgdcf(
+        if self.v_gnn is not None:
+            v_h = self.v_gnn(
                 g,
                 torch.cat([
                     torch.zeros_like(user_h),

@@ -1,9 +1,9 @@
 import argparse
 
 from one_game.configs.default_config import add_arguments_by_config_class
-from one_game.configs.mm_mgdcf_default_config import MMMGDCFConfig
+from one_game.configs.mm_gnn_default_config import MMGNNConfig
 
-config_class = MMMGDCFConfig
+config_class = MMGNNConfig
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', type=str, default='baby', help='name of datasets')
 parser.add_argument('--method', type=str)

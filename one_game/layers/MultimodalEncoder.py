@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from one_game.layers.common import MyMLP
 
-from one_game.layers.GNNBackbone import MGDCF
+from one_game.layers.GNNBackbone import GNNBackbone
 
 
 class MMMLP(nn.Module):
@@ -52,7 +52,7 @@ class MMMLP(nn.Module):
         return item_h
 
 
-class MMMGDCF(nn.Module):
+class MMGNN(nn.Module):
     def __init__(self,
                  #  k,
                  k_e,
@@ -77,11 +77,9 @@ class MMMGDCF(nn.Module):
 
         super().__init__()
 
-
-
-        self.emb_mgdcf = MGDCF(k_e, alpha, beta, 0.0, edge_drop_rate, 0.0) if k_e >= 0 else None
-        self.t_mgdcf = MGDCF(k_t, alpha, beta, 0.0, edge_drop_rate, 0.0) if k_t >= 0 else None
-        self.v_mgdcf = MGDCF(k_v, alpha, beta, 0.0, edge_drop_rate, 0.0) if k_v >= 0 else None
+        self.emb_gnn = GNNBackbone(k_e, alpha, beta, 0.0, edge_drop_rate, 0.0) if k_e >= 0 else None
+        self.t_gnn = GNNBackbone(k_t, alpha, beta, 0.0, edge_drop_rate, 0.0) if k_t >= 0 else None
+        self.v_gnn = GNNBackbone(k_v, alpha, beta, 0.0, edge_drop_rate, 0.0) if k_v >= 0 else None
 
 
 
@@ -134,8 +132,8 @@ class MMMGDCF(nn.Module):
         num_users = user_embeddings.size(0)
         user_h = user_embeddings
 
-        if self.emb_mgdcf is not None:
-            emb_h = self.emb_mgdcf(
+        if self.emb_gnn is not None:
+            emb_h = self.emb_gnn(
                 g,
                 torch.cat([
                     self.user_gnn_input_dropout(user_h),
@@ -146,8 +144,8 @@ class MMMGDCF(nn.Module):
         else:
             emb_h = None
 
-        if self.t_mgdcf is not None:
-            t_h = self.t_mgdcf(
+        if self.t_gnn is not None:
+            t_h = self.t_gnn(
                 g,
                 torch.cat([
                     torch.zeros_like(user_h),
@@ -157,8 +155,8 @@ class MMMGDCF(nn.Module):
         else:
             t_h = None
 
-        if self.v_mgdcf is not None:
-            v_h = self.v_mgdcf(
+        if self.v_gnn is not None:
+            v_h = self.v_gnn(
                 g,
                 torch.cat([
                     torch.zeros_like(user_h),
@@ -169,7 +167,7 @@ class MMMGDCF(nn.Module):
             v_h = None
 
         if item_item_g is not None:
-            homo_t_h = self.homo_t_mgdcf(item_item_g, self.item_gnn_input_dropout(encoded_t))
+            homo_t_h = self.homo_t_gnn(item_item_g, self.item_gnn_input_dropout(encoded_t))
 
             t_h = torch.concat([
                 torch.zeros_like(user_h),
